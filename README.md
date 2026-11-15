@@ -1,3 +1,4 @@
+<img width="690" height="440" alt="acuracia_vs_snr" src="https://github.com/user-attachments/assets/09eb18b2-e1c1-4d91-bd74-02903ff34545" />
 # Classificação Automática de Modulação (AMC) com Redes Neurais
 
 Sou estudante do 3º período de Engenharia de Telecomunicações e criei este repositório para documentar meu projeto de estudo independente em Inteligência Artificial aplicada a redes sem fio, como **IoT** (Internet das Coisas, que conecta dispositivos simples com pouca bateria e baixo processamento) e 5G/6G. 
@@ -32,7 +33,8 @@ O **IQ ordenado** resolve essa bagunça da ordem e chega a 100% de acerto quando
 
 Os **cumulantes** confirmaram minha hipótese inicial: com poucos símbolos (32), a conta estatística de 4ª ordem fica instável, mas com 512 símbolos o modelo bate **99,8% de acerto no ruído (8 dB)**[cite: 1, 2]. Como o método entrega só 4 números para a rede em vez de 1.024 valores brutos, o gasto de processamento cai drasticamente[cite: 1, 2].
 
-*(Insira aqui a imagem `acuracia_vs_snr.png` gerada pelo código)*
+<img width="690" height="440" alt="acuracia_vs_snr" src="https://github.com/user-attachments/assets/c39cdf1a-3ab8-4c93-a0bc-264429bab932" />
+
 
 ## Como rodar o código
 
