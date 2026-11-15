@@ -1,4 +1,3 @@
-<img width="690" height="440" alt="acuracia_vs_snr" src="https://github.com/user-attachments/assets/09eb18b2-e1c1-4d91-bd74-02903ff34545" />
 # Classificação Automática de Modulação (AMC) com Redes Neurais
 
 Sou estudante do 3º período de Engenharia de Telecomunicações e criei este repositório para documentar meu projeto de estudo independente em Inteligência Artificial aplicada a redes sem fio, como **IoT** (Internet das Coisas, que conecta dispositivos simples com pouca bateria e baixo processamento) e 5G/6G. 
