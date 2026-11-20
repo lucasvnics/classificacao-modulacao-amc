@@ -1,43 +1,70 @@
-# Classificação Automática de Modulação (AMC) com Redes Neurais
+# Classificação Automática de Modulação (AMC) Leve para Redes IoT e Ad Hoc
 
-Sou estudante do 3º período de Engenharia de Telecomunicações e criei este repositório para documentar meu projeto de estudo independente em Inteligência Artificial aplicada a redes sem fio, como **IoT** (Internet das Coisas, que conecta dispositivos simples com pouca bateria e baixo processamento) e 5G/6G. 
+Projeto pessoal de pesquisa e estudo independente em Inteligência Artificial aplicada a redes sem fio (IoT, redes ad hoc e 5G/6G). O objetivo é identificar automaticamente qual modulação digital foi utilizada em uma transmissão (BPSK, QPSK, 8PSK ou 16QAM) a partir de sinais recebidos com ruído, priorizando modelos ultraleves capazes de rodar diretamente na borda (Edge AI / TinyML) em microcontroladores com severa restrição de memória e bateria.
 
-A ideia central é resolver um problema clássico da camada física: descobrir automaticamente qual **modulação** (regra que transforma bits em alterações de fase e amplitude de uma onda) foi usada na transmissão — entre **BPSK, QPSK, 8PSK e 16QAM** — olhando apenas para o sinal que chega sujo de ruído no receptor.
+## 1. Motivação e Problema de Pesquisa
 
-## O que estou testando
+Em redes de sensores sem fio, redes ad hoc e dispositivos de Internet das Coisas (IoT), a autonomia de bateria e a baixa capacidade computacional são os maiores gargalos. Abordagens tradicionais de aprendizado profundo (como CNNs operando diretamente sobre formas de onda brutas) exigem muita memória e processamento, tornando-se inviáveis para nós alimentados por bateria.
 
-A partir de conversas e orientações acadêmicas sobre o alto custo computacional de redes profundas, decidi focar em abordagens mais leves que façam sentido para hardwares simples de IoT[cite: 1, 2]. 
+Pergunta central do estudo: como a forma de representar o sinal recebido afeta a acurácia, a latência e o consumo energético de uma rede neural embarcada na classificação de modulações sob ruído?
 
-Em vez de criar uma rede gigante, mantive exatamente a mesma **MLP** (perceptron multicamadas, uma rede neural densa tradicional com duas camadas ocultas de 64 neurônios) e mudei apenas a forma de entregar o sinal para ela[cite: 1, 2]:
+## 2. Metodologia em Duas Frentes
 
-1. **IQ Bruto:** passo os valores dos eixos I (em fase) e Q (em quadratura) da **constelação** (gráfico que representa os símbolos transmitidos como pontos no plano) na ordem exata em que chegam.
-2. **IQ Ordenado:** organizo separadamente as partes I e Q do menor para o maior antes de enviar para a rede, tirando o efeito da ordem aleatória dos símbolos.
-3. **Cumulantes:** resumo todo o bloco de símbolos em apenas 4 números estatísticos ($|C_{20}|$, $|C_{40}|$, $|C_{41}|$ e $C_{42}$) que descrevem o formato da nuvem de pontos[cite: 1, 2].
+### Frente 1: Camada Física e Engenharia de Atributos (Python / Scikit-Learn)
+Comparei três formas diferentes de entregar o sinal complexo (em fase I e quadratura Q) sob canal com Ruído Branco Gaussiano Aditivo (AWGN) para uma rede neural densa (MLP):
 
-## Resultados da Semana 1
+1. IQ Bruto: entrega as componentes I e Q na ordem aleatória em que chegam.
+2. IQ Ordenado: ordena separadamente os valores de I e Q do menor para o maior antes da rede.
+3. Cumulantes de Ordem Superior: resume toda a janela de símbolos em apenas 4 estatísticas matemáticas (|C20|, |C40|, |C41| e C42) que descrevem o formato geométrico da constelação.
 
-Simulei o envio dos sinais em um canal **AWGN** (ruído branco gaussiano aditivo, usado para imitar o ruído térmico dos circuitos) variando a **SNR** (relação sinal-ruído, medida em decibéis que compara a potência do sinal útil com a do ruído). Também variei a quantidade de símbolos observados por vez (32, 128 e 512) para ver como o tamanho da amostra afeta a **acurácia** (porcentagem de acertos do modelo, onde um chute aleatório entre 4 opções equivale a 25%)[cite: 1, 2]:
+### Frente 2: Simulação de Rede e Benchmark de Hardware (LoRaSimPlus + ESP32)
+Para validar a viabilidade prática em um cenário de comunicação sem fio, acoplei o classificador leve (mlp_esp32.py) ao simulador de eventos discretos LoRaSimPlus em um enlace ponto-a-ponto limpo (1 nó transmissor e 1 receptor/gateway separados por 1.236 metros, durante 1 hora sem colisões), estimando o custo computacional e energético em um microcontrolador ESP32 (240 MHz, 520 KB de SRAM).
 
-| Entrada | 32 símb. (8 / 20 dB) | 128 símb. (8 / 20 dB) | 512 símb. (8 / 20 dB) |
-| :--- | :---: | :---: | :---: |
-| **IQ bruto** | 47,8% / 50,3% | 40,8% / 41,8% | 33,8% / 34,2% |
-| **IQ ordenado** | 76,8% / 87,0% | 88,8% / 99,9% | 95,3% / 100,0% |
-| **Cumulantes** | 82,8% / 88,4% | 97,4% / 97,4% | 99,8% / 99,6% |
+## 3. Principais Resultados Experimentais
 
-Na prática, os números acima mostram três comportamentos bem claros no experimento[cite: 1, 2]:
+### 3.1 Comparação de Representações e Tamanho de Janela (MLP 64x64)
+Avaliação de acurácia em cenários ruidosos (8 dB) e limpos (20 dB) variando o número de símbolos por janela (onde o chute aleatório entre 4 classes equivale a 25%):
 
-O **IQ bruto** vai mal em qualquer cenário (e até piora com 512 símbolos) porque a ordem dos símbolos sorteados é aleatória[cite: 1, 2]. Como embaralhar os pontos não muda a modulação, a rede densa se perde tentando decorar sequências que não existem[cite: 1, 2].
+| Representação de Entrada | 8 dB (32 símb.) | 8 dB (128 símb.) | 8 dB (512 símb.) | 20 dB (32 símb.) | 20 dB (128 símb.) | 20 dB (512 símb.) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| IQ Bruto | 47,8% | 40,8% | 33,8% | 50,3% | 41,8% | 34,2% |
+| IQ Ordenado | 76,8% | 88,8% | 95,3% | 87,0% | 99,9% | 100,0% |
+| Cumulantes (4 atributos) | 82,8% | 97,4% | 99,8% | 88,4% | 97,4% | 99,6% |
 
-O **IQ ordenado** resolve essa bagunça da ordem e chega a 100% de acerto quando o sinal está limpo (20 dB), mas perde força em 8 dB porque o ruído borra os "degraus" que a ordenação cria e destrói o par original I/Q de cada ponto[cite: 1, 2].
+Principais achados da camada física:
+- O IQ Bruto falha porque embaralhar a ordem dos símbolos não altera a modulação (invariância à permutação), fazendo a rede densa decorar padrões aleatórios.
+- Com janelas de 512 símbolos, os 4 Cumulantes atingem 99,8% de acurácia sob ruído forte (8 dB), pois estatísticas de 4ª ordem anulam teoricamente o ruído gaussiano enquanto comprimem 1.024 valores brutos em apenas 4 números.
+- Testes adicionais de estresse mostraram que treinar a rede apenas em sinal limpo (20 dB) causa overfitting (a acurácia em 8 dB cai para 75,0%), comprovando a necessidade de treinar em múltiplas SNRs (-4 a 20 dB). A matriz de confusão também revelou 0% de erro no BPSK, concentrando as raras trocas entre QPSK e 16QAM.
 
-Os **cumulantes** confirmaram minha hipótese inicial: com poucos símbolos (32), a conta estatística de 4ª ordem fica instável, mas com 512 símbolos o modelo bate **99,8% de acerto no ruído (8 dB)**[cite: 1, 2]. Como o método entrega só 4 números para a rede em vez de 1.024 valores brutos, o gasto de processamento cai drasticamente[cite: 1, 2].
-
-<img width="690" height="440" alt="acuracia_vs_snr" src="https://github.com/user-attachments/assets/c39cdf1a-3ab8-4c93-a0bc-264429bab932" />
 
 
-## Como rodar o código
+### 3.2 Compressão da Rede e Benchmark no ESP32 (LoRaSimPlus)
+Reduzi a arquitetura para uma MLP ultraleve de apenas uma camada oculta com 16 neurônios (4 -> 16 -> 4, totalizando 148 parâmetros) e avaliei sua execução no receptor durante 1 hora de tráfego LoRaWAN:
 
-O script foi feito para rodar direto no Google Colab, mas funciona localmente em Python instalando as bibliotecas básicas:
+| Métrica Avaliada (Rede e Hardware ESP32 @ 240 MHz) | Resultado Obtido |
+| :--- | :---: |
+| Pacotes enviados / recebidos no enlace (1.236 m) | 618 enviados / 569 recebidos (DER: 92,07%) |
+| Vazão efetiva da rede (Throughput) | 882,215 bps |
+| Energia total gasta na transmissão via Rádio | 8,424 Joules (8.424 mJ) |
+| Memória ocupada pela MLP (148 parâmetros em float32) | 592 bytes (< 0,12% da SRAM do ESP32) |
+| Acurácia da MLP na recepção | 100,00% (569/569 pacotes) |
+| Latência estimada por inferência no ESP32 | 25,0 microssegundos |
+| Energia gasta pela CPU na IA (569 pacotes) | 3,6985 mJ acumulados (6,50 uJ/pacote) |
+
+Conclusão energética: enquanto o transceptor de rádio consumiu 8,424 Joules para transmitir os pacotes, o processamento da rede neural no receptor gastou apenas 0,0037 Joules no total — mais de 2.200 vezes menos energia que a transmissão sem fio, validando a viabilidade de inteligência na borda para nós IoT com restrição severa de bateria.
+
+## 4. Estrutura do Repositório
+
+- README.md: visão geral do projeto, metodologia e consolidação dos resultados.
+- classificado_modulacao_py.ipynb: notebook principal com simulação AWGN, extração de cumulantes, treino das MLPs e matrizes de confusão.
+- mlp_esp32.py: módulo leve em Python/NumPy para emulação de inferência, memória e gasto energético no ESP32 acoplado ao LoRaSimPlus.
+- simulacao_lorasimplus_esp32.md: relatório técnico detalhado dos experimentos de rede no LoRaSimPlus.
+- resumo_semana_1.md: registro inicial das primeiras descobertas e hipóteses do projeto.
+- acuracia_vs_snr.png: curvas comparativas de desempenho por nível de ruído.
+
+## 5. Como Executar (Reprodutibilidade)
+
+Os experimentos utilizam semente aleatória fixa (np.random.default_rng(42)) para garantir reprodutibilidade. Para rodar localmente:
 
 ```bash
-pip install numpy scikit-learn matplotlib
+pip install numpy scikit-learn matplotlib simpy
